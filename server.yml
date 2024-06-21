@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minecraft-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minecraft-server
+  template:
+    metadata:
+      labels:
+        app: minecraft-server
+    spec:
+      containers:
+        - name: minecraft
+          image: itzg/minecraft-server
+          ports:
+            - containerPort: 25565
+          env:
+            - name: EULA
+              value: "TRUE"
+            - name: ONLINE_MODE
+              value: "false"  # Disable online mode
+            - name: TYPE
+              value: "MOHIST"
+            - name: VERSION
+              value: "1.20.1"
+          volumeMounts:
+            - name: mod-storage
+              mountPath: /data/mods
+          resources:
+            requests:
+              memory: "3Gi"
+              cpu: "1500m"
+      volumes:
+        - name: mod-storage
+          persistentVolumeClaim:
+            claimName: minecraft-mods-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: minecraft-mods-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minecraft-service
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 25565
+      targetPort: 25565
+  selector:
+    app: minecraft-server
